@@ -1,0 +1,63 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title></title>
+    <link href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.min.css" rel="stylesheet">
+</head>
+<body>
+    <div id="terminal"></div>
+    <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
+    <script>
+        const terminal = new Terminal({
+            cursorBlink: true,
+        });
+        terminal.open(document.getElementById('terminal'));
+        terminal.writeln('Hello from xterm.js');
+        // 處理輸入
+        var userInput = '';
+        terminal.onKey(e => {
+            switch (e.key) {
+                case '\x7F':
+                    {
+                        userInput = userInput.slice(0, -1); // 移除最後一個字元
+                        terminal.write('\b \b'); // 同時在終端上移除這個字元：退回一個字元，寫一個空格來覆蓋，然後再次退回
+                        break;
+                    }
+                case '\r':
+                    {
+                        terminal.write(e.key);
+                        console.log(userInput);
+                        terminal.write('\n');
+                        let index = userInput.indexOf(" ");
+                        let app = userInput.substring(0, index === -1 ? userInput.length : index); // 獲取第一個空格前的部分
+                        let args = userInput.substring(index + 1); // 獲取第一個空格後的所有部分
+                        if (app) {
+                            fetch(`/${app}?args=${args}`)
+                                .then(response => {
+                                    if (!response.ok) {
+                                        throw new Error('Network response was not ok');
+                                    }
+                                    return response.text();
+                                })
+                                .then(data => {
+                                    console.log(data);
+                                    terminal.write(data);
+                                })
+                                .catch(error => console.error('There was a problem with your fetch operation:', error));
+                        }
+                        userInput = '';
+                        break;
+                    }
+                default:
+                    {
+                        terminal.write(e.key);
+                        userInput += e.key;
+                        break;
+                    }
+            }
+        });
+    </script>
+</body>
+</html>

@@ -7,16 +7,20 @@ var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 app.UseHttpsRedirection();
+app.UseDefaultFiles();
+app.UseStaticFiles();
 app.UseRouting();
 app.UseEndpoints(endpoints =>
 {
     _ = endpoints.MapFallback(async (context) =>
     {
         var app = context.Request.Path.ToString().TrimStart('/');
+        var args = context.Request.Query["args"].ToString() ?? string.Empty;
         // 設置 ProcessStartInfo
         var startInfo = new ProcessStartInfo
         {
             FileName = $"{Path.Combine(AppDomain.CurrentDomain.BaseDirectory, app)}.exe",
+            Arguments = args,
             RedirectStandardOutput = true,
             UseShellExecute = false,
             CreateNoWindow = true
