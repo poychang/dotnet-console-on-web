@@ -7,25 +7,34 @@ var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 app.UseHttpsRedirection();
-app.MapGet("/console-app", async () =>
+app.UseRouting();
+app.UseEndpoints(endpoints =>
 {
-    // 設置 ProcessStartInfo
-    var startInfo = new ProcessStartInfo
+    _ = endpoints.MapFallback(async (context) =>
     {
-        FileName = $@"{AppDomain.CurrentDomain.BaseDirectory}\{nameof(ConsoleApp)}.exe",
-        RedirectStandardOutput = true,
-        UseShellExecute = false,
-        CreateNoWindow = true
-    };
+        var app = context.Request.Path.ToString().TrimStart('/');
+        // 設置 ProcessStartInfo
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = $"{Path.Combine(AppDomain.CurrentDomain.BaseDirectory, app)}.exe",
+            RedirectStandardOutput = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+        Console.WriteLine(startInfo.FileName);
 
-    Console.WriteLine(startInfo.FileName);
-
-    using (var process = new Process { StartInfo = startInfo })
-    {
-        process.Start();
-        var output = await process.StandardOutput.ReadToEndAsync(); // 讀取標準輸出
-        process.WaitForExit(); // 等待程序結束
-        return output; // 將執行結果輸出
-    }
+        if (File.Exists(startInfo.FileName))
+        {
+            using var process = new Process { StartInfo = startInfo };
+            process.Start();
+            var output = await process.StandardOutput.ReadToEndAsync(); // 讀取標準輸出
+            process.WaitForExit(); // 等待程序結束
+            await context.Response.WriteAsync(output); // 將執行結果輸出
+        }
+        else
+        {
+            await context.Response.WriteAsync($"'{app}' not found");
+        }
+    });
 });
 app.Run();
